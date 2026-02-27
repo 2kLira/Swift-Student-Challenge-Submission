@@ -10,7 +10,9 @@ import SwiftUI
 struct MainTabsView: View {
 
     @ObservedObject var store: TruequeStore
-    var reset: () -> Void
+
+    /// Closure que controla la salida al nivel anterior (Selection)
+    var onExit: () -> Void
 
     @State private var selection: TabSelection = .dashboard
 
@@ -18,12 +20,15 @@ struct MainTabsView: View {
 
         TabView(selection: $selection) {
 
-            DashboardView(store: store, reset: reset)
-                .tabItem {
-                    Image(systemName: "hand.raised.fill")
-                    Text("Favores")
-                }
-                .tag(TabSelection.dashboard)
+            DashboardView(
+                store: store,
+                onExit: onExit
+            )
+            .tabItem {
+                Image(systemName: "hand.raised.fill")
+                Text("Favores")
+            }
+            .tag(TabSelection.dashboard)
 
             CommunityNetworkView(store: store)
                 .tabItem {
@@ -32,13 +37,9 @@ struct MainTabsView: View {
                 }
                 .tag(TabSelection.network)
         }
-        .tabViewStyle(.automatic) // asegura comportamiento tipo iPhone también en iPad
+        .tabViewStyle(.automatic)
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Tab Enum
-//////////////////////////////////////////////////////////////
 
 extension MainTabsView {
 

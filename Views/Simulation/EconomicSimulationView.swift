@@ -5,7 +5,6 @@
 //  Created by Guillermo Lira on 17/02/26.
 //
 
-
 import SwiftUI
 import UIKit
 
@@ -26,12 +25,12 @@ struct EconomicSimulationView: View {
     @State private var showClosing = false
     @State private var pulse = false
     @State private var velocityActive = false
+    @State private var impactPulse = false
 
     var body: some View {
         mainView
     }
 }
-
 extension EconomicSimulationView {
 
     private var mainView: some View {
@@ -47,8 +46,9 @@ extension EconomicSimulationView {
             )
             .ignoresSafeArea()
             .animation(
-                accessibility.reduceMotionMode ? nil :
-                    .easeInOut(duration: 0.8),
+                accessibility.animationsEnabled ?
+                    .easeInOut(duration: 0.8) :
+                    nil,
                 value: activated
             )
 
@@ -68,8 +68,9 @@ extension EconomicSimulationView {
                         .foregroundColor(.gray)
                         .opacity(activated ? 0 : 1)
                         .animation(
-                            accessibility.reduceMotionMode ? nil :
-                                .easeInOut(duration: 0.6),
+                            accessibility.animationsEnabled ?
+                                .easeInOut(duration: 0.6) :
+                                nil,
                             value: activated
                         )
                 }
@@ -80,25 +81,25 @@ extension EconomicSimulationView {
 
                     impactSection
                         .transition(
-                            accessibility.reduceMotionMode ?
-                                .identity :
-                                .opacity.combined(with: .move(edge: .bottom))
+                            accessibility.animationsEnabled ?
+                                .opacity.combined(with: .move(edge: .bottom)) :
+                                .identity
                         )
 
                     tradeCards
                         .transition(
-                            accessibility.reduceMotionMode ?
-                                .identity :
-                                .opacity.combined(with: .move(edge: .bottom))
+                            accessibility.animationsEnabled ?
+                                .opacity.combined(with: .move(edge: .bottom)) :
+                                .identity
                         )
                 }
 
                 if showClosing {
                     closingSection
                         .transition(
-                            accessibility.reduceMotionMode ?
-                                .identity :
-                                .opacity
+                            accessibility.animationsEnabled ?
+                                .opacity :
+                                .identity
                         )
                 }
 
@@ -129,6 +130,170 @@ extension EconomicSimulationView {
                 }
         )
     }
+}
+
+// MARK: - Impact Section
+
+extension EconomicSimulationView {
+
+    private var impactSection: some View {
+
+        VStack(spacing: 8) {
+
+            Text("Community Value Generated")
+                .font(.caption)
+                .foregroundColor(.oceanBase.opacity(0.6))
+
+            Text("\(communityValue) TT")
+                .font(.system(size: sizeClass == .regular ? 32 : 28, weight: .semibold))
+                .foregroundColor(.oceanAccent)
+                .scaleEffect(impactPulse ? 1.08 : 1.0)
+                .animation(
+                    accessibility.animationsEnabled ?
+                        .easeOut(duration: 0.25) :
+                        nil,
+                    value: impactPulse
+                )
+                .onChange(of: communityValue) { newValue in
+                    announceImpact(newValue)
+                    triggerImpactPulse()
+                }
+        }
+        .padding(sizeClass == .regular ? 20 : 16)
+        .frame(maxWidth: 320)
+        .background(Color.white.opacity(0.75))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .shadow(color: .black.opacity(0.06), radius: 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Community value generated \(communityValue) tokens")
+        .accessibilityHint("Total value produced collectively by the community.")
+    }
+
+    private func triggerImpactPulse() {
+        guard accessibility.animationsEnabled else { return }
+        impactPulse = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            impactPulse = false
+        }
+    }
+
+    private func announceImpact(_ value: Int) {
+        guard UIAccessibility.isVoiceOverRunning else { return }
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: "Community value updated to \(value) tokens"
+        )
+    }
+}
+// MARK: - Metrics
+
+extension EconomicSimulationView {
+
+    private var metricsSection: some View {
+
+        VStack(spacing: 12) {
+
+            HStack(spacing: sizeClass == .regular ? 44 : 30) {
+
+                metricBlock(value: exchanges, label: "Exchanges")
+                metricBlock(value: circulated, label: "Circulated", suffix: " TT")
+                trustBlock
+            }
+            .padding(sizeClass == .regular ? 20 : 16)
+            .background(Color.white.opacity(0.6))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .shadow(
+                color: pulse ? Color.oceanAccent.opacity(0.2) : .black.opacity(0.05),
+                radius: pulse ? 20 : 10
+            )
+            .scaleEffect(pulse ? 1.04 : 1.0)
+            .animation(
+                accessibility.animationsEnabled ?
+                    .easeOut(duration: 0.4) :
+                    nil,
+                value: pulse
+            )
+
+            if velocityActive {
+
+                HStack(spacing: 8) {
+
+                    Circle()
+                        .fill(Color.oceanAccent)
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(pulse ? 1.4 : 1.0)
+                        .animation(
+                            accessibility.animationsEnabled ?
+                                .easeInOut(duration: 0.4) :
+                                nil,
+                            value: pulse
+                        )
+
+                    Text("Economic Flow Active")
+                        .font(.caption)
+                        .foregroundColor(.oceanBase.opacity(0.7))
+                }
+            }
+        }
+    }
+
+    private func metricBlock(
+        value: Int,
+        label: String,
+        suffix: String = ""
+    ) -> some View {
+
+        VStack(spacing: 6) {
+
+            Text("\(value)\(suffix)")
+                .font(.system(size: sizeClass == .regular ? 20 : 17, weight: .semibold))
+                .foregroundColor(.oceanBase)
+
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var trustBlock: some View {
+
+        VStack(alignment: .leading, spacing: 6) {
+
+            Text("\(Int(trust * 100))%")
+                .font(.system(size: sizeClass == .regular ? 20 : 17, weight: .semibold))
+                .foregroundColor(.oceanBase)
+
+            ZStack(alignment: .leading) {
+
+                Capsule()
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: sizeClass == .regular ? 92 : 70, height: 6)
+
+                Capsule()
+                    .fill(Color.oceanAccent)
+                    .frame(
+                        width: (sizeClass == .regular ? 92 : 70) * trust,
+                        height: 6
+                    )
+                    .animation(
+                        accessibility.animationsEnabled ?
+                            .easeInOut(duration: 0.2) :
+                            nil,
+                        value: trust
+                    )
+            }
+
+            Text("Trust")
+                .font(.caption2)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+// MARK: - Closing
+
+extension EconomicSimulationView {
 
     private var closingSection: some View {
 
@@ -160,151 +325,71 @@ extension EconomicSimulationView {
         }
     }
 }
-
-extension EconomicSimulationView {
-
-    private var metricsSection: some View {
-
-        VStack(spacing: 12) {
-
-            HStack(spacing: sizeClass == .regular ? 44 : 30) {
-
-                metricBlock(value: exchanges, label: "Exchanges")
-                metricBlock(value: circulated, label: "Circulated", suffix: " TT")
-                trustBlock
-            }
-            .padding(sizeClass == .regular ? 20 : 16)
-            .background(Color.white.opacity(0.6))
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .shadow(
-                color: pulse ? Color.oceanAccent.opacity(0.2) : .black.opacity(0.05),
-                radius: pulse ? 20 : 10
-            )
-            .scaleEffect(pulse ? 1.04 : 1.0)
-            .animation(
-                accessibility.reduceMotionMode ? nil :
-                    .easeOut(duration: 0.4),
-                value: pulse
-            )
-
-            if velocityActive {
-
-                HStack(spacing: 8) {
-
-                    Circle()
-                        .fill(Color.oceanAccent)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(pulse ? 1.4 : 1.0)
-                        .animation(
-                            accessibility.reduceMotionMode ? nil :
-                                .easeInOut(duration: 0.4),
-                            value: pulse
-                        )
-
-                    Text("Economic Flow Active")
-                        .font(.caption)
-                        .foregroundColor(.oceanBase.opacity(0.7))
-                }
-                .transition(
-                    accessibility.reduceMotionMode ?
-                        .identity :
-                        .opacity
-                )
-            }
-        }
-    }
-
-    private var impactSection: some View {
-
-        VStack(spacing: 6) {
-
-            Text("Community Value Generated")
-                .font(.caption)
-                .foregroundColor(.oceanBase.opacity(0.6))
-
-            Text("\(communityValue) TT")
-                .font(.system(size: sizeClass == .regular ? 30 : 26, weight: .medium))
-                .foregroundColor(.oceanAccent)
-        }
-        .padding(sizeClass == .regular ? 18 : 14)
-        .background(Color.white.opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(0.05), radius: 8)
-    }
-
-    private func metricBlock(value: Int, label: String, suffix: String = "") -> some View {
-
-        VStack(spacing: 6) {
-            Text("\(value)\(suffix)")
-                .font(.system(size: sizeClass == .regular ? 20 : 17, weight: .semibold))
-                .foregroundColor(.oceanBase)
-
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.gray)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var trustBlock: some View {
-
-        VStack(alignment: .leading, spacing: 6) {
-
-            Text("\(Int(trust * 100))%")
-                .font(.system(size: sizeClass == .regular ? 20 : 17, weight: .semibold))
-                .foregroundColor(.oceanBase)
-
-            ZStack(alignment: .leading) {
-
-                Capsule()
-                    .fill(Color.gray.opacity(0.15))
-                    .frame(width: sizeClass == .regular ? 92 : 70, height: 6)
-
-                Capsule()
-                    .fill(Color.oceanAccent)
-                    .frame(width: (sizeClass == .regular ? 92 : 70) * trust, height: 6)
-                    .animation(
-                        accessibility.reduceMotionMode ? nil :
-                            .easeInOut(duration: 0.2),
-                        value: trust
-                    )
-            }
-
-            Text("Trust")
-                .font(.caption2)
-                .foregroundColor(.gray)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
+// MARK: - Trade Cards
 
 extension EconomicSimulationView {
 
     private var tradeCards: some View {
 
         Group {
+
             if sizeClass == .regular {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                    tradeCard(title: "Childcare Support", description: "Helping a neighbor with childcare.", value: 3)
-                    tradeCard(title: "Water Delivery", description: "Transporting clean water.", value: 5)
+
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ],
+                    spacing: 14
+                ) {
+                    tradeCard(
+                        title: "Childcare Support",
+                        description: "Helping a neighbor with childcare.",
+                        value: 3
+                    )
+
+                    tradeCard(
+                        title: "Water Delivery",
+                        description: "Transporting clean water.",
+                        value: 5
+                    )
                 }
                 .padding(.top, 4)
+
             } else {
+
                 VStack(spacing: 15) {
-                    tradeCard(title: "Childcare Support", description: "Helping a neighbor with childcare.", value: 3)
-                    tradeCard(title: "Water Delivery", description: "Transporting clean water.", value: 5)
+
+                    tradeCard(
+                        title: "Childcare Support",
+                        description: "Helping a neighbor with childcare.",
+                        value: 3
+                    )
+
+                    tradeCard(
+                        title: "Water Delivery",
+                        description: "Transporting clean water.",
+                        value: 5
+                    )
                 }
             }
         }
+        .accessibilityElement(children: .contain)
     }
 
-    private func tradeCard(title: String, description: String, value: Int) -> some View {
+    private func tradeCard(
+        title: String,
+        description: String,
+        value: Int
+    ) -> some View {
 
         HStack {
 
             VStack(alignment: .leading, spacing: 4) {
+
                 Text(title)
                     .font(.headline)
+
                 Text(description)
                     .font(.caption)
                     .foregroundColor(.gray)
@@ -320,8 +405,16 @@ extension EconomicSimulationView {
         .background(Color.white.opacity(0.9))
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .shadow(color: .black.opacity(0.05), radius: 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(title). \(description). Value \(value) tokens."
+        )
+        .accessibilityHint(
+            "Example of a real exchange generating community value."
+        )
     }
 }
+// MARK: - Logic
 
 extension EconomicSimulationView {
 
@@ -332,7 +425,8 @@ extension EconomicSimulationView {
         activated = true
         velocityActive = true
 
-        if accessibility.reduceMotionMode {
+        // Reduce Motion / Animations Disabled
+        if !accessibility.animationsEnabled {
 
             exchanges = 12
             circulated = 48
@@ -342,9 +436,13 @@ extension EconomicSimulationView {
             return
         }
 
+        // Haptic feedback
         mediumImpact()
+
+        // Visual emphasis pulse
         triggerPulse()
 
+        // Animated counter progression
         animateCounter(
             targetExchanges: 12,
             targetCirculated: 48,
@@ -352,10 +450,12 @@ extension EconomicSimulationView {
             duration: 1.4
         )
 
+        // Light follow-up haptic
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
             lightImpact()
         }
 
+        // Show closing section
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
             withAnimation(.easeInOut(duration: 0.8)) {
                 showClosing = true
@@ -370,20 +470,31 @@ extension EconomicSimulationView {
         duration: Double
     ) {
 
-        guard !accessibility.reduceMotionMode else { return }
+        guard accessibility.animationsEnabled else { return }
 
         let steps = 40
         let interval = duration / Double(steps)
 
         for step in 1...steps {
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(step)) {
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + interval * Double(step)
+            ) {
 
                 let progress = Double(step) / Double(steps)
 
-                exchanges = Int(Double(targetExchanges) * progress)
-                circulated = Int(Double(targetCirculated) * progress)
-                trust = 0.62 + (targetTrust - 0.62) * progress
+                exchanges = Int(
+                    Double(targetExchanges) * progress
+                )
+
+                circulated = Int(
+                    Double(targetCirculated) * progress
+                )
+
+                trust = 0.62 + (
+                    targetTrust - 0.62
+                ) * progress
+
                 communityValue = circulated
             }
         }
@@ -391,33 +502,41 @@ extension EconomicSimulationView {
 
     private func triggerPulse() {
 
-        guard !accessibility.reduceMotionMode else { return }
+        guard accessibility.animationsEnabled else { return }
 
         pulse = true
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             pulse = false
         }
     }
 }
+// MARK: - Haptics
 
 extension EconomicSimulationView {
 
     private func lightImpact() {
-        guard !accessibility.reduceMotionMode else { return }
+
+        guard accessibility.animationsEnabled else { return }
+
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.prepare()
         generator.impactOccurred()
     }
 
     private func mediumImpact() {
-        guard !accessibility.reduceMotionMode else { return }
+
+        guard accessibility.animationsEnabled else { return }
+
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.prepare()
         generator.impactOccurred()
     }
 
     private func selectionFeedback() {
-        guard !accessibility.reduceMotionMode else { return }
+
+        guard accessibility.animationsEnabled else { return }
+
         let generator = UISelectionFeedbackGenerator()
         generator.prepare()
         generator.selectionChanged()

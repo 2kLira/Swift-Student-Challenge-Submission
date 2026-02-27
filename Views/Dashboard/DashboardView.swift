@@ -13,8 +13,7 @@ struct DashboardView: View {
 
     @ObservedObject var store: TruequeStore
     @EnvironmentObject var accessibility: AccessibilityManager
-    var reset: () -> Void
-
+    var onExit: () -> Void
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var counterTrueque: Trueque?
@@ -29,6 +28,9 @@ struct DashboardView: View {
     @State private var floatingOffsetY: CGFloat = 0
     @State private var floatingScale: CGFloat = 1.0
     @State private var floatingOpacity: Double = 0
+
+    // Accessibility Panel
+    @State private var showAccessibilityPanel = false
 
     var body: some View {
 
@@ -52,7 +54,11 @@ struct DashboardView: View {
                 store.applyCounter(truequeID: trueque.id, newValue: newValue)
                 announce("Counter offer applied")
                 counterTrueque = nil
-            }        }
+            }
+        }
+        .sheet(isPresented: $showAccessibilityPanel) {
+            AccessibilitySettingsView()
+        }
         .alert("Insufficient balance", isPresented: $showInsufficientBalanceAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -62,7 +68,7 @@ struct DashboardView: View {
 }
 
 extension DashboardView {
-    
+
     private func announceBalanceChange(_ newValue: Int) {
 
         guard UIAccessibility.isVoiceOverRunning else { return }
@@ -74,7 +80,7 @@ extension DashboardView {
             argument: message
         )
     }
-    
+
     private func announce(_ message: String) {
         guard UIAccessibility.isVoiceOverRunning else { return }
 
@@ -179,7 +185,7 @@ extension DashboardView {
 
         HStack {
 
-            Button { reset() } label: {
+            Button { onExit() } label: {
                 Image(systemName: "chevron.left")
             }
 
@@ -200,7 +206,12 @@ extension DashboardView {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.oceanAccent)
                 .scaleEffect(balancePulse ? 1.18 : 1.0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: balancePulse)
+                .animation(
+                    accessibility.animationsEnabled
+                        ? .spring(response: 0.3, dampingFraction: 0.6)
+                        : nil,
+                    value: balancePulse
+                )
                 .onChange(of: user.tokenBalance) { newValue in
                     triggerBalanceAnimation()
                     announceBalanceChange(newValue)
@@ -211,6 +222,14 @@ extension DashboardView {
                 .accessibilityAddTraits(.updatesFrequently)
             }
 
+            // Accessibility button (discrete)
+            Button {
+                showAccessibilityPanel = true
+            } label: {
+                Image(systemName: "accessibility")
+            }
+            .accessibilityLabel("Accessibility Settings")
+
             Button { showAddSheet = true } label: {
                 Image(systemName: "plus")
             }
@@ -220,7 +239,7 @@ extension DashboardView {
 
     private func triggerBalanceAnimation() {
 
-        guard !accessibility.reduceMotionMode else { return }
+        guard accessibility.animationsEnabled else { return }
 
         balancePulse = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -280,7 +299,7 @@ extension DashboardView {
 
     private func playFloatingTTAnimation() {
 
-        if accessibility.reduceMotionMode {
+        if !accessibility.animationsEnabled {
             showFloatingTT = true
             floatingOpacity = 1
 
@@ -419,5 +438,5 @@ private struct WalletEntryCard: View {
         f.dateFormat = "MMM d"
         return f.string(from: date)
     }
-  
+
 }

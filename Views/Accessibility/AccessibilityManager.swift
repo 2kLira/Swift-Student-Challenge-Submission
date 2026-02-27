@@ -8,10 +8,19 @@
 
 import SwiftUI
 
+@MainActor
 final class AccessibilityManager: ObservableObject {
-
-    @AppStorage("accessibleMode") var accessibleMode = false
-    @AppStorage("largeTextMode") var largeTextMode = false
-    @AppStorage("highContrastMode") var highContrastMode = false
-    @AppStorage("reduceMotionMode") var reduceMotionMode = false
+    
+    @AppStorage("reduceMotionMode")
+    var reduceMotionMode: Bool = false {
+        willSet {
+            objectWillChange.send()
+        }
+    }
+    
+    // MARK: - Computed Helpers
+    
+    var animationsEnabled: Bool {
+        !reduceMotionMode
+    }
 }

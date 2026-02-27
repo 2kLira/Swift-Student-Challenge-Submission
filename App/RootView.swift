@@ -5,6 +5,7 @@
 //  Created by Guillermo Lira on 23/02/26.
 //
 
+
 import SwiftUI
 
 struct RootView: View {
@@ -12,50 +13,110 @@ struct RootView: View {
     @StateObject private var store = TruequeStore()
     @StateObject private var accessibility = AccessibilityManager()
 
-    @State private var hasSeenOnboarding = false
-    @State private var showSimulation = true
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+
+    private enum Step {
+        case onboarding
+        case simulation
+        case selection
+        case main
+    }
+
+    @State private var step: Step = .onboarding
 
     var body: some View {
 
-        NavigationStack {
+        ZStack {
 
-            if !hasSeenOnboarding {
+            switch step {
 
+            case .onboarding:
                 OnboardingView {
-                    withAnimation(animationStyle) {
-                        hasSeenOnboarding = true
-                    }
+                    goToSimulation()
                 }
 
-            } else if showSimulation {
-
+            case .simulation:
                 EconomicSimulationView {
-                    withAnimation(animationStyle) {
-                        showSimulation = false
-                    }
+                    goToSelection()
                 }
 
-            } else if store.selectedCommunity == nil || store.selectedUser == nil {
+            case .selection:
+                SelectionView(
+                    store: store,
+                    onBack: { goBackFromSelection() },
+                    onReady: { goToMainIfReady() }
+                )
 
-                SelectionView(store: store)
-
-            } else {
-
+            case .main:
                 MainTabsView(store: store) {
-                    store.reset()
-                    hasSeenOnboarding = false
-                    showSimulation = true
+                    exitToSelection()
                 }
             }
         }
-        .animation(animationStyle, value: hasSeenOnboarding)
         .environmentObject(accessibility)
+        .onAppear {
+            bootstrapInitialStep()
+        }
+    }
+}
+
+// MARK: - Flow
+
+extension RootView {
+
+    private func bootstrapInitialStep() {
+        // Evita “flash” raro: solo define el arranque según AppStorage.
+        if hasSeenOnboarding {
+            step = .simulation
+        } else {
+            step = .onboarding
+        }
     }
 
-    // MARK: - Animation Style (Reduce Motion Support)
+    private func goToSimulation() {
+        updateWithOptionalAnimation {
+            hasSeenOnboarding = true
+            step = .simulation
+        }
+    }
 
-    private var animationStyle: Animation? {
-        accessibility.reduceMotionMode ? nil : .easeInOut(duration: 0.5)
+    private func goToSelection() {
+        updateWithOptionalAnimation {
+            step = .selection
+        }
+    }
+
+    private func goToMainIfReady() {
+        guard store.selectedCommunity != nil, store.selectedUser != nil else { return }
+        updateWithOptionalAnimation {
+            step = .main
+        }
+    }
+
+    private func goBackFromSelection() {
+        updateWithOptionalAnimation {
+            // Back 1 pantalla: Selection -> Simulation
+            step = .simulation
+        }
+    }
+
+    private func exitToSelection() {
+        updateWithOptionalAnimation {
+            // Back 1 pantalla: Main -> Selection
+            // (si quieres conservar ledger/estado, NO llames reset aquí)
+            store.reset()
+            step = .selection
+        }
+    }
+
+    private func updateWithOptionalAnimation(_ changes: @escaping () -> Void) {
+        if accessibility.animationsEnabled {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                changes()
+            }
+        } else {
+            changes()
+        }
     }
 }
 

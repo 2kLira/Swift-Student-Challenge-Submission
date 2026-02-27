@@ -12,6 +12,7 @@ struct OnboardingView: View {
     var onFinish: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @EnvironmentObject var accessibility: AccessibilityManager
 
     @State private var stage = 0
     @State private var animateNetwork = false
@@ -124,13 +125,18 @@ extension OnboardingView {
 
                 SimpleNetworkView(
                     animate: animateNetwork,
-                    large: sizeClass == .regular
+                    large: sizeClass == .regular,
+                    animationsEnabled: accessibility.animationsEnabled
                 )
                 .frame(height: sizeClass == .regular ? 260 : 180)
                 .padding(.top, 30)
             }
             .onAppear {
-                withAnimation(.easeInOut(duration: 1.2)) {
+                if accessibility.animationsEnabled {
+                    withAnimation(.easeInOut(duration: 1.2)) {
+                        animateNetwork = true
+                    }
+                } else {
                     animateNetwork = true
                 }
             }
@@ -156,7 +162,8 @@ extension OnboardingView {
 
                 TrustPreviewRing(
                     animate: animateTrust,
-                    large: sizeClass == .regular
+                    large: sizeClass == .regular,
+                    animationsEnabled: accessibility.animationsEnabled
                 )
                 .frame(
                     width: sizeClass == .regular ? 140 : 80,
@@ -164,14 +171,18 @@ extension OnboardingView {
                 )
                 .padding(.top, 30)
 
-                Text("Designed to strengthen local communities through accountable reciprocity.")
+                Text("Designed for real communities.\nAccessible by default.")
                     .font(.system(size: sizeClass == .regular ? 16 : 14))
                     .foregroundColor(.oceanBase.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .padding(.top, 10)
             }
             .onAppear {
-                withAnimation(.easeInOut(duration: 1.2)) {
+                if accessibility.animationsEnabled {
+                    withAnimation(.easeInOut(duration: 1.2)) {
+                        animateTrust = true
+                    }
+                } else {
                     animateTrust = true
                 }
             }
@@ -199,7 +210,13 @@ extension OnboardingView {
     }
 
     private func nextStage() {
-        withAnimation(.easeInOut(duration: 0.6)) {
+        if accessibility.animationsEnabled {
+            withAnimation(.easeInOut(duration: 0.6)) {
+                if stage < 2 {
+                    stage += 1
+                }
+            }
+        } else {
             if stage < 2 {
                 stage += 1
             }
@@ -213,6 +230,7 @@ struct SimpleNetworkView: View {
 
     var animate: Bool
     var large: Bool = false
+    var animationsEnabled: Bool
 
     var body: some View {
 
@@ -253,7 +271,10 @@ struct SimpleNetworkView: View {
                     Color.oceanAccent.opacity(animate ? 0.6 : 0.0),
                     lineWidth: large ? 3 : 2
                 )
-                .animation(.easeInOut(duration: 1.2), value: animate)
+                .animation(
+                    animationsEnabled ? .easeInOut(duration: 1.2) : nil,
+                    value: animate
+                )
             }
         }
     }
@@ -265,6 +286,7 @@ struct TrustPreviewRing: View {
 
     var animate: Bool
     var large: Bool = false
+    var animationsEnabled: Bool
 
     var body: some View {
 
@@ -283,7 +305,10 @@ struct TrustPreviewRing: View {
                     )
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 1.2), value: animate)
+                .animation(
+                    animationsEnabled ? .easeInOut(duration: 1.2) : nil,
+                    value: animate
+                )
         }
     }
 }
