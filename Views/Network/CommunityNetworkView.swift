@@ -11,6 +11,7 @@ import SwiftUI
 struct CommunityNetworkView: View {
 
     @ObservedObject var store: TruequeStore
+    @EnvironmentObject var accessibility: AccessibilityManager
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var animatePulse = false
@@ -35,10 +36,6 @@ struct CommunityNetworkView: View {
         }
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Layouts
-//////////////////////////////////////////////////////////////
 
 extension CommunityNetworkView {
 
@@ -76,10 +73,6 @@ extension CommunityNetworkView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Network Canvas
-//////////////////////////////////////////////////////////////
-
 extension CommunityNetworkView {
 
     private func networkCanvas(in size: CGSize) -> some View {
@@ -90,7 +83,6 @@ extension CommunityNetworkView {
 
         return ZStack {
 
-            // Edges
             ForEach(connections) { e in
                 if let p1 = positions[e.fromUser],
                    let p2 = positions[e.toUser] {
@@ -100,18 +92,19 @@ extension CommunityNetworkView {
                         to: p2,
                         tokens: e.tokens,
                         trust: store.communityTrust,
-                        pulse: animatePulse
+                        pulse: animatePulse,
+                        reduceMotion: accessibility.reduceMotionMode
                     )
                 }
             }
 
-            // Nodes
             ForEach(users) { u in
                 if let p = positions[u.id] {
                     NetworkNode(
                         name: u.name,
                         balance: u.tokenBalance,
-                        trust: store.communityTrust
+                        trust: store.communityTrust,
+                        reduceMotion: accessibility.reduceMotionMode
                     )
                     .position(p)
                 }
@@ -128,10 +121,6 @@ extension CommunityNetworkView {
         }
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Header
-//////////////////////////////////////////////////////////////
 
 extension CommunityNetworkView {
 
@@ -185,10 +174,6 @@ extension CommunityNetworkView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Organic Circle Logic
-//////////////////////////////////////////////////////////////
-
 extension CommunityNetworkView {
 
     private func organicCirclePositions(users: [User], in size: CGSize) -> [UUID: CGPoint] {
@@ -223,6 +208,9 @@ extension CommunityNetworkView {
     }
 
     private func triggerPulse() {
+
+        guard !accessibility.reduceMotionMode else { return }
+
         animatePulse = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             animatePulse = false
@@ -255,10 +243,6 @@ extension CommunityNetworkView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Network Edge
-//////////////////////////////////////////////////////////////
-
 private struct NetworkEdge: View {
 
     let from: CGPoint
@@ -266,6 +250,7 @@ private struct NetworkEdge: View {
     let tokens: Int
     let trust: Double
     let pulse: Bool
+    let reduceMotion: Bool
 
     var body: some View {
 
@@ -285,7 +270,11 @@ private struct NetworkEdge: View {
             color: Color.oceanAccent.opacity(pulse ? 0.18 : 0.06),
             radius: pulse ? 10 : 6
         )
-        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: pulse)
+        .animation(
+            reduceMotion ? nil :
+                .spring(response: 0.35, dampingFraction: 0.75),
+            value: pulse
+        )
     }
 
     private var edgeWidth: CGFloat {
@@ -298,15 +287,12 @@ private struct NetworkEdge: View {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Network Node
-//////////////////////////////////////////////////////////////
-
 private struct NetworkNode: View {
 
     let name: String
     let balance: Int
     let trust: Double
+    let reduceMotion: Bool
 
     var body: some View {
 
@@ -330,7 +316,11 @@ private struct NetworkNode: View {
         )
         .shadow(color: .black.opacity(0.05), radius: 8)
         .scaleEffect(nodeScale)
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: trust)
+        .animation(
+            reduceMotion ? nil :
+                .spring(response: 0.35, dampingFraction: 0.8),
+            value: trust
+        )
     }
 
     private var nodeScale: CGFloat {

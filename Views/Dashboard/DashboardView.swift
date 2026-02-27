@@ -12,6 +12,7 @@ import UIKit
 struct DashboardView: View {
 
     @ObservedObject var store: TruequeStore
+    @EnvironmentObject var accessibility: AccessibilityManager
     var reset: () -> Void
 
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -49,9 +50,9 @@ struct DashboardView: View {
         .sheet(item: $counterTrueque) { trueque in
             CounterOfferView(trueque: trueque) { newValue in
                 store.applyCounter(truequeID: trueque.id, newValue: newValue)
+                announce("Counter offer applied")
                 counterTrueque = nil
-            }
-        }
+            }        }
         .alert("Insufficient balance", isPresented: $showInsufficientBalanceAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -60,11 +61,28 @@ struct DashboardView: View {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Layouts
-//////////////////////////////////////////////////////////////
-
 extension DashboardView {
+    
+    private func announceBalanceChange(_ newValue: Int) {
+
+        guard UIAccessibility.isVoiceOverRunning else { return }
+
+        let message = "Balance updated to \(newValue) tokens"
+
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: message
+        )
+    }
+    
+    private func announce(_ message: String) {
+        guard UIAccessibility.isVoiceOverRunning else { return }
+
+        UIAccessibility.post(
+            notification: .announcement,
+            argument: message
+        )
+    }
 
     private var ipadLayout: some View {
 
@@ -135,7 +153,10 @@ extension DashboardView {
                             currentUserBalance: user.tokenBalance,
                             ownerBalance: balanceOfOwner(for: trueque),
                             onAccept: { acceptWithEffects(trueque: trueque) },
-                            onReject: { store.rejectTrueque(truequeID: trueque.id) },
+                            onReject: {
+                                store.rejectTrueque(truequeID: trueque.id)
+                                announce("Trueque rejected")
+                            },
                             onCounter: { counterTrueque = trueque }
                         )
                     }
@@ -151,10 +172,6 @@ extension DashboardView {
         }
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Header
-//////////////////////////////////////////////////////////////
 
 extension DashboardView {
 
@@ -184,9 +201,14 @@ extension DashboardView {
                 .foregroundColor(.oceanAccent)
                 .scaleEffect(balancePulse ? 1.18 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: balancePulse)
-                .onChange(of: user.tokenBalance) { _ in
+                .onChange(of: user.tokenBalance) { newValue in
                     triggerBalanceAnimation()
+                    announceBalanceChange(newValue)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Token balance \(user.tokenBalance)")
+                .accessibilityHint("Your current Trueque Token balance.")
+                .accessibilityAddTraits(.updatesFrequently)
             }
 
             Button { showAddSheet = true } label: {
@@ -197,16 +219,15 @@ extension DashboardView {
     }
 
     private func triggerBalanceAnimation() {
+
+        guard !accessibility.reduceMotionMode else { return }
+
         balancePulse = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             balancePulse = false
         }
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Floating TT
-//////////////////////////////////////////////////////////////
 
 extension DashboardView {
 
@@ -231,10 +252,6 @@ extension DashboardView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Logic
-//////////////////////////////////////////////////////////////
-
 extension DashboardView {
 
     private func acceptWithEffects(trueque: Trueque) {
@@ -246,8 +263,11 @@ extension DashboardView {
 
         if !ok {
             showInsufficientBalanceAlert = true
+            announce("Insufficient balance")
             return
         }
+
+        announce("Trueque accepted")
 
         let after = store.selectedUser?.tokenBalance ?? before
         let delta = after - before
@@ -259,6 +279,16 @@ extension DashboardView {
     }
 
     private func playFloatingTTAnimation() {
+
+        if accessibility.reduceMotionMode {
+            showFloatingTT = true
+            floatingOpacity = 1
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showFloatingTT = false
+            }
+            return
+        }
 
         showFloatingTT = true
         floatingOffsetY = 52
@@ -299,10 +329,6 @@ extension DashboardView {
         )
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Wallet Mini History
-//////////////////////////////////////////////////////////////
 
 private struct WalletMiniHistory: View {
 
@@ -393,4 +419,5 @@ private struct WalletEntryCard: View {
         f.dateFormat = "MMM d"
         return f.string(from: date)
     }
+  
 }

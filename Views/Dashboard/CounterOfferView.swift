@@ -14,6 +14,8 @@ struct CounterOfferView: View {
     var trueque: Trueque
     var onApply: (Int) -> Void
     
+    @EnvironmentObject var accessibility: AccessibilityManager
+    
     @State private var value: Int
     
     init(trueque: Trueque, onApply: @escaping (Int) -> Void) {
@@ -27,45 +29,62 @@ struct CounterOfferView: View {
         VStack(spacing: 30) {
             
             Text("Counter Offer")
-                .font(.headline)
+                .font(.title3)
+                .fontWeight(.semibold)
             
-            HStack(spacing: 20) {
+            HStack(spacing: 24) {
                 
                 Button {
                     decrement()
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.largeTitle)
+                        .font(.title)
                         .foregroundColor(.oceanAccent)
                 }
+                .accessibilityLabel("Decrease tokens")
                 
                 Text("\(value) TT")
-                    .font(.system(size: 28, weight: .medium))
-                    .frame(minWidth: 120)
+                    .font(.title2)
+                    .fontWeight(.medium)
+                    .minimumScaleFactor(0.7)
+                    .accessibilityLabel("Current token value \(value)")
                 
                 Button {
                     increment()
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.largeTitle)
+                        .font(.title)
                         .foregroundColor(.oceanAccent)
                 }
+                .accessibilityLabel("Increase tokens")
             }
             
-            TextField("Tokens", value: $value, format: .number)
-                .keyboardType(.numberPad)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 150)
+            VStack(alignment: .leading, spacing: 8) {
+                
+                Text("Tokens")
+                    .font(.caption)
+                    .foregroundColor(.oceanBase.opacity(0.6))
+                
+                TextField("Amount", value: $value, format: .number)
+                    .keyboardType(.numberPad)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.body)
+                    .accessibilityLabel("Token amount field")
+            }
+            .frame(maxWidth: 200)
             
             Button("Apply Counter") {
                 onApply(value)
             }
+            .font(.body)
             .padding(.horizontal, 30)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(Color.oceanAccent.opacity(0.2))
             .clipShape(Capsule())
+            .accessibilityLabel("Apply counter offer")
         }
         .padding()
+        .dynamicTypeSize(.xSmall ... .accessibility5)
     }
     
     private func increment() {
@@ -81,7 +100,9 @@ struct CounterOfferView: View {
     }
     
     private func microHaptic() {
+        guard !accessibility.reduceMotionMode else { return }
         let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
         generator.impactOccurred()
     }
 }

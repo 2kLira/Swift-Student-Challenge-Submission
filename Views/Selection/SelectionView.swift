@@ -11,7 +11,7 @@ import SwiftUI
 struct SelectionView: View {
     
     @ObservedObject var store: TruequeStore
-    
+    @EnvironmentObject var accessibility: AccessibilityManager
     @Environment(\.horizontalSizeClass) private var sizeClass
     
     @State private var showCommunities = false
@@ -39,28 +39,20 @@ struct SelectionView: View {
             showUsers: $showUsers,
             isIPad: sizeClass == .regular
         ))
+        .dynamicTypeSize(.xSmall ... .accessibility5)
     }
 }
-
-//////////////////////////////////////////////////////////////
-// MARK: - Layout
-//////////////////////////////////////////////////////////////
 
 extension SelectionView {
     
     @ViewBuilder
     private var contentLayout: some View {
-        
         if sizeClass == .regular {
             ipadLayout
         } else {
             iphoneLayout
         }
     }
-    
-    //////////////////////////////////////////////////////////
-    // iPad Layout
-    //////////////////////////////////////////////////////////
     
     private var ipadLayout: some View {
         
@@ -71,8 +63,9 @@ extension SelectionView {
             VStack(spacing: 30) {
                 
                 Text("TRUEQUE TIDE")
-                    .font(.system(size: 26, weight: .medium))
-                    .tracking(8)
+                    .font(.title2)
+                    .fontWeight(.medium)
+                    .tracking(6)
                     .foregroundColor(.oceanBase)
                 
                 actionColumn
@@ -84,10 +77,6 @@ extension SelectionView {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    //////////////////////////////////////////////////////////
-    // iPhone Layout
-    //////////////////////////////////////////////////////////
-    
     private var iphoneLayout: some View {
         
         VStack(spacing: 60) {
@@ -95,8 +84,9 @@ extension SelectionView {
             Spacer()
             
             Text("TRUEQUE TIDE")
-                .font(.system(size: 22, weight: .medium))
-                .tracking(6)
+                .font(.title3)
+                .fontWeight(.medium)
+                .tracking(5)
                 .foregroundColor(.oceanBase)
             
             actionColumn
@@ -106,31 +96,34 @@ extension SelectionView {
         .padding()
     }
     
-    //////////////////////////////////////////////////////////
-    // Shared Column
-    //////////////////////////////////////////////////////////
-    
     private var actionColumn: some View {
         
         VStack(spacing: 50) {
             
-            // COMMUNITY
             VStack(spacing: 10) {
                 
                 Button {
                     showCommunities = true
                 } label: {
                     Text("🌐")
-                        .font(.system(size: store.selectedCommunity == nil ? 90 : 60))
-                        .animation(.easeInOut(duration: 0.3), value: store.selectedCommunity != nil)
+                        .font(
+                            store.selectedCommunity == nil ?
+                            .system(size: accessibility.reduceMotionMode ? 70 : 80) :
+                            .system(size: 55)
+                        )
                 }
+                .animation(
+                    accessibility.reduceMotionMode ? nil :
+                        .easeInOut(duration: 0.3),
+                    value: store.selectedCommunity != nil
+                )
+                .accessibilityLabel("Select community")
                 
                 Text("Community")
                     .font(.caption)
                     .foregroundColor(.oceanBase)
             }
             
-            // USER
             VStack(spacing: 10) {
                 
                 Button {
@@ -139,14 +132,24 @@ extension SelectionView {
                     }
                 } label: {
                     Text("👤")
-                        .font(.system(size: store.selectedCommunity != nil && store.selectedUser == nil ? 90 : 60))
+                        .font(
+                            store.selectedCommunity != nil &&
+                            store.selectedUser == nil ?
+                            .system(size: accessibility.reduceMotionMode ? 70 : 80) :
+                            .system(size: 55)
+                        )
                         .foregroundColor(
                             store.selectedCommunity == nil ?
                             .gray.opacity(0.4) :
                             .oceanAccent
                         )
-                        .animation(.easeInOut(duration: 0.3), value: store.selectedUser != nil)
                 }
+                .animation(
+                    accessibility.reduceMotionMode ? nil :
+                        .easeInOut(duration: 0.3),
+                    value: store.selectedUser != nil
+                )
+                .accessibilityLabel("Select user")
                 
                 Text("User")
                     .font(.caption)
@@ -155,10 +158,6 @@ extension SelectionView {
         }
     }
 }
-
-
-// MARK: - Adaptive Modals (Centered Sheet)
-
 
 struct SelectionModals: ViewModifier {
     
@@ -173,19 +172,11 @@ struct SelectionModals: ViewModifier {
         
         content
         
-        ////////////////////////////////////////////////////////
-        // COMMUNITY
-        ////////////////////////////////////////////////////////
-        
         .sheet(isPresented: $showCommunities) {
             modalContainer {
                 communityList
             }
         }
-        
-        ////////////////////////////////////////////////////////
-        // USER
-        ////////////////////////////////////////////////////////
         
         .sheet(isPresented: $showUsers) {
             modalContainer {
@@ -194,17 +185,12 @@ struct SelectionModals: ViewModifier {
         }
     }
     
-    //////////////////////////////////////////////////////////
-    // Modal Container
-    //////////////////////////////////////////////////////////
-    
     private func modalContainer<Content: View>(
         @ViewBuilder content: () -> Content
     ) -> some View {
         
         Group {
             if isIPad {
-                // iPad centrado tipo card
                 ZStack {
                     
                     RoundedRectangle(cornerRadius: 24)
@@ -216,17 +202,13 @@ struct SelectionModals: ViewModifier {
                 }
                 .frame(width: 420, height: 520)
             } else {
-                // iPhone normal
                 NavigationView {
                     content()
                 }
             }
         }
+        .dynamicTypeSize(.xSmall ... .accessibility5)
     }
-    
-    //////////////////////////////////////////////////////////
-    // Lists
-    //////////////////////////////////////////////////////////
     
     private var communityList: some View {
         List(store.communities) { community in
@@ -246,9 +228,6 @@ struct SelectionModals: ViewModifier {
         }
     }
 }
-//////////////////////////////////////////////////////////////
-// MARK: - Conditional Modifier Helper
-//////////////////////////////////////////////////////////////
 
 extension View {
     @ViewBuilder

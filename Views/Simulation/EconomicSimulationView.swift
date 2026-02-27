@@ -13,6 +13,7 @@ struct EconomicSimulationView: View {
 
     var onEnter: () -> Void
 
+    @EnvironmentObject var accessibility: AccessibilityManager
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var exchanges: Int = 0
@@ -31,10 +32,6 @@ struct EconomicSimulationView: View {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Main View
-//////////////////////////////////////////////////////////////
-
 extension EconomicSimulationView {
 
     private var mainView: some View {
@@ -49,7 +46,11 @@ extension EconomicSimulationView {
                 endPoint: .bottom
             )
             .ignoresSafeArea()
-            .animation(.easeInOut(duration: 0.8), value: activated)
+            .animation(
+                accessibility.reduceMotionMode ? nil :
+                    .easeInOut(duration: 0.8),
+                value: activated
+            )
 
             VStack(spacing: sizeClass == .regular ? 34 : 30) {
 
@@ -66,7 +67,11 @@ extension EconomicSimulationView {
                         .font(.caption)
                         .foregroundColor(.gray)
                         .opacity(activated ? 0 : 1)
-                        .animation(.easeInOut(duration: 0.6), value: activated)
+                        .animation(
+                            accessibility.reduceMotionMode ? nil :
+                                .easeInOut(duration: 0.6),
+                            value: activated
+                        )
                 }
 
                 metricsSection
@@ -74,16 +79,27 @@ extension EconomicSimulationView {
                 if activated {
 
                     impactSection
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .transition(
+                            accessibility.reduceMotionMode ?
+                                .identity :
+                                .opacity.combined(with: .move(edge: .bottom))
+                        )
 
                     tradeCards
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .transition(
+                            accessibility.reduceMotionMode ?
+                                .identity :
+                                .opacity.combined(with: .move(edge: .bottom))
+                        )
                 }
 
                 if showClosing {
-
                     closingSection
-                        .transition(.opacity)
+                        .transition(
+                            accessibility.reduceMotionMode ?
+                                .identity :
+                                .opacity
+                        )
                 }
 
                 Spacer()
@@ -145,10 +161,6 @@ extension EconomicSimulationView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Metrics
-//////////////////////////////////////////////////////////////
-
 extension EconomicSimulationView {
 
     private var metricsSection: some View {
@@ -169,7 +181,11 @@ extension EconomicSimulationView {
                 radius: pulse ? 20 : 10
             )
             .scaleEffect(pulse ? 1.04 : 1.0)
-            .animation(.easeOut(duration: 0.4), value: pulse)
+            .animation(
+                accessibility.reduceMotionMode ? nil :
+                    .easeOut(duration: 0.4),
+                value: pulse
+            )
 
             if velocityActive {
 
@@ -179,13 +195,21 @@ extension EconomicSimulationView {
                         .fill(Color.oceanAccent)
                         .frame(width: 8, height: 8)
                         .scaleEffect(pulse ? 1.4 : 1.0)
-                        .animation(.easeInOut(duration: 0.4), value: pulse)
+                        .animation(
+                            accessibility.reduceMotionMode ? nil :
+                                .easeInOut(duration: 0.4),
+                            value: pulse
+                        )
 
                     Text("Economic Flow Active")
                         .font(.caption)
                         .foregroundColor(.oceanBase.opacity(0.7))
                 }
-                .transition(.opacity)
+                .transition(
+                    accessibility.reduceMotionMode ?
+                        .identity :
+                        .opacity
+                )
             }
         }
     }
@@ -239,7 +263,11 @@ extension EconomicSimulationView {
                 Capsule()
                     .fill(Color.oceanAccent)
                     .frame(width: (sizeClass == .regular ? 92 : 70) * trust, height: 6)
-                    .animation(.easeInOut(duration: 0.2), value: trust)
+                    .animation(
+                        accessibility.reduceMotionMode ? nil :
+                            .easeInOut(duration: 0.2),
+                        value: trust
+                    )
             }
 
             Text("Trust")
@@ -250,10 +278,6 @@ extension EconomicSimulationView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Trade Cards
-//////////////////////////////////////////////////////////////
-
 extension EconomicSimulationView {
 
     private var tradeCards: some View {
@@ -261,32 +285,14 @@ extension EconomicSimulationView {
         Group {
             if sizeClass == .regular {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                    tradeCard(
-                        title: "Childcare Support",
-                        description: "Helping a neighbor with childcare.",
-                        value: 3
-                    )
-
-                    tradeCard(
-                        title: "Water Delivery",
-                        description: "Transporting clean water.",
-                        value: 5
-                    )
+                    tradeCard(title: "Childcare Support", description: "Helping a neighbor with childcare.", value: 3)
+                    tradeCard(title: "Water Delivery", description: "Transporting clean water.", value: 5)
                 }
                 .padding(.top, 4)
             } else {
                 VStack(spacing: 15) {
-                    tradeCard(
-                        title: "Childcare Support",
-                        description: "Helping a neighbor with childcare.",
-                        value: 3
-                    )
-
-                    tradeCard(
-                        title: "Water Delivery",
-                        description: "Transporting clean water.",
-                        value: 5
-                    )
+                    tradeCard(title: "Childcare Support", description: "Helping a neighbor with childcare.", value: 3)
+                    tradeCard(title: "Water Delivery", description: "Transporting clean water.", value: 5)
                 }
             }
         }
@@ -299,7 +305,6 @@ extension EconomicSimulationView {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
-
                 Text(description)
                     .font(.caption)
                     .foregroundColor(.gray)
@@ -318,10 +323,6 @@ extension EconomicSimulationView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Activation Logic
-//////////////////////////////////////////////////////////////
-
 extension EconomicSimulationView {
 
     private func activateEconomy() {
@@ -330,6 +331,16 @@ extension EconomicSimulationView {
 
         activated = true
         velocityActive = true
+
+        if accessibility.reduceMotionMode {
+
+            exchanges = 12
+            circulated = 48
+            trust = 0.87
+            communityValue = 48
+            showClosing = true
+            return
+        }
 
         mediumImpact()
         triggerPulse()
@@ -359,6 +370,8 @@ extension EconomicSimulationView {
         duration: Double
     ) {
 
+        guard !accessibility.reduceMotionMode else { return }
+
         let steps = 40
         let interval = duration / Double(steps)
 
@@ -377,6 +390,9 @@ extension EconomicSimulationView {
     }
 
     private func triggerPulse() {
+
+        guard !accessibility.reduceMotionMode else { return }
+
         pulse = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             pulse = false
@@ -384,25 +400,24 @@ extension EconomicSimulationView {
     }
 }
 
-//////////////////////////////////////////////////////////////
-// MARK: - Haptics
-//////////////////////////////////////////////////////////////
-
 extension EconomicSimulationView {
 
     private func lightImpact() {
+        guard !accessibility.reduceMotionMode else { return }
         let generator = UIImpactFeedbackGenerator(style: .light)
         generator.prepare()
         generator.impactOccurred()
     }
 
     private func mediumImpact() {
+        guard !accessibility.reduceMotionMode else { return }
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.prepare()
         generator.impactOccurred()
     }
 
     private func selectionFeedback() {
+        guard !accessibility.reduceMotionMode else { return }
         let generator = UISelectionFeedbackGenerator()
         generator.prepare()
         generator.selectionChanged()

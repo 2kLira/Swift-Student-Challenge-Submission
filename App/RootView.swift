@@ -10,6 +10,7 @@ import SwiftUI
 struct RootView: View {
 
     @StateObject private var store = TruequeStore()
+    @StateObject private var accessibility = AccessibilityManager()
 
     @State private var hasSeenOnboarding = false
     @State private var showSimulation = true
@@ -21,7 +22,7 @@ struct RootView: View {
             if !hasSeenOnboarding {
 
                 OnboardingView {
-                    withAnimation(.easeInOut(duration: 0.6)) {
+                    withAnimation(animationStyle) {
                         hasSeenOnboarding = true
                     }
                 }
@@ -29,7 +30,7 @@ struct RootView: View {
             } else if showSimulation {
 
                 EconomicSimulationView {
-                    withAnimation {
+                    withAnimation(animationStyle) {
                         showSimulation = false
                     }
                 }
@@ -47,6 +48,17 @@ struct RootView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: hasSeenOnboarding)
+        .animation(animationStyle, value: hasSeenOnboarding)
+        .environmentObject(accessibility)
     }
+
+    // MARK: - Animation Style (Reduce Motion Support)
+
+    private var animationStyle: Animation? {
+        accessibility.reduceMotionMode ? nil : .easeInOut(duration: 0.5)
+    }
+}
+
+#Preview {
+    RootView()
 }

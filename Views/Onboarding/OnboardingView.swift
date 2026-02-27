@@ -32,17 +32,10 @@ struct OnboardingView: View {
         .onTapGesture {
             nextStage()
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                stage = 0
-            }
-        }
     }
 }
 
-//////////////////////////////////////////////////////////////
 // MARK: - Layouts
-//////////////////////////////////////////////////////////////
 
 extension OnboardingView {
 
@@ -82,9 +75,7 @@ extension OnboardingView {
     }
 }
 
-//////////////////////////////////////////////////////////////
 // MARK: - Content by Stage
-//////////////////////////////////////////////////////////////
 
 extension OnboardingView {
 
@@ -94,34 +85,49 @@ extension OnboardingView {
         switch stage {
 
         case 0:
-            VStack(spacing: 20) {
 
-                Text("I grew up watching communities full of talent")
+            VStack(spacing: 24) {
+
+                Text("Communities already exchange value.")
                     .font(.system(size: sizeClass == .regular ? 34 : 24, weight: .medium))
                     .multilineTextAlignment(.center)
 
-                Text("with no real opportunity to grow.")
+                Text("Skills. Time. Support.")
                     .font(.system(size: sizeClass == .regular ? 20 : 16))
-                    .foregroundColor(.oceanBase.opacity(0.7))
+                    .foregroundColor(.oceanBase.opacity(0.75))
+                    .multilineTextAlignment(.center)
+
+                Text("But once a favor is done, the value disappears.")
+                    .font(.system(size: sizeClass == .regular ? 18 : 15))
+                    .foregroundColor(.oceanBase.opacity(0.6))
                     .multilineTextAlignment(.center)
             }
             .transition(.opacity)
 
         case 1:
+
             VStack(spacing: 28) {
 
-                Text("Value already exists inside communities.")
+                Text("Trueque Tide structures that value.")
                     .font(.system(size: sizeClass == .regular ? 30 : 22, weight: .medium))
                     .multilineTextAlignment(.center)
 
-                Text("It just needs structure to circulate.")
+                Text("It records favors as Trust Tokens.")
                     .font(.system(size: sizeClass == .regular ? 18 : 16))
-                    .foregroundColor(.oceanBase.opacity(0.7))
+                    .foregroundColor(.oceanBase.opacity(0.75))
                     .multilineTextAlignment(.center)
 
-                SimpleNetworkView(animate: animateNetwork, large: sizeClass == .regular)
-                    .frame(height: sizeClass == .regular ? 260 : 180)
-                    .padding(.top, 30)
+                Text("Trust becomes measurable. Value circulates.")
+                    .font(.system(size: sizeClass == .regular ? 16 : 14))
+                    .foregroundColor(.oceanBase.opacity(0.6))
+                    .multilineTextAlignment(.center)
+
+                SimpleNetworkView(
+                    animate: animateNetwork,
+                    large: sizeClass == .regular
+                )
+                .frame(height: sizeClass == .regular ? 260 : 180)
+                .padding(.top, 30)
             }
             .onAppear {
                 withAnimation(.easeInOut(duration: 1.2)) {
@@ -131,15 +137,21 @@ extension OnboardingView {
             .transition(.opacity)
 
         default:
+
             VStack(spacing: 30) {
 
-                Text("What if trust itself")
-                    .font(.system(size: sizeClass == .regular ? 34 : 24, weight: .medium))
+                Text("Not a replacement for money.")
+                    .font(.system(size: sizeClass == .regular ? 28 : 22, weight: .medium))
                     .multilineTextAlignment(.center)
 
-                Text("could become currency?")
+                Text("Not a political ideology.")
+                    .font(.system(size: sizeClass == .regular ? 18 : 16))
+                    .foregroundColor(.oceanBase.opacity(0.75))
+                    .multilineTextAlignment(.center)
+
+                Text("A structured chain of help.")
                     .font(.system(size: sizeClass == .regular ? 20 : 16))
-                    .foregroundColor(.oceanBase.opacity(0.7))
+                    .foregroundColor(.oceanBase.opacity(0.75))
                     .multilineTextAlignment(.center)
 
                 TrustPreviewRing(
@@ -151,6 +163,12 @@ extension OnboardingView {
                     height: sizeClass == .regular ? 140 : 80
                 )
                 .padding(.top, 30)
+
+                Text("Designed to strengthen local communities through accountable reciprocity.")
+                    .font(.system(size: sizeClass == .regular ? 16 : 14))
+                    .foregroundColor(.oceanBase.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 10)
             }
             .onAppear {
                 withAnimation(.easeInOut(duration: 1.2)) {
@@ -162,16 +180,14 @@ extension OnboardingView {
     }
 }
 
-//////////////////////////////////////////////////////////////
 // MARK: - Button
-//////////////////////////////////////////////////////////////
 
 extension OnboardingView {
 
     private var startButton: some View {
 
         Button(action: onFinish) {
-            Text("Start Community →")
+            Text("Enter Community →")
                 .font(.system(size: sizeClass == .regular ? 20 : 17, weight: .medium))
                 .foregroundColor(.white)
                 .padding(.horizontal, sizeClass == .regular ? 40 : 24)
@@ -191,9 +207,7 @@ extension OnboardingView {
     }
 }
 
-//////////////////////////////////////////////////////////////
 // MARK: - Simple Network
-//////////////////////////////////////////////////////////////
 
 struct SimpleNetworkView: View {
 
@@ -245,9 +259,7 @@ struct SimpleNetworkView: View {
     }
 }
 
-//////////////////////////////////////////////////////////////
 // MARK: - Trust Ring
-//////////////////////////////////////////////////////////////
 
 struct TrustPreviewRing: View {
 

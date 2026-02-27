@@ -10,13 +10,8 @@ import SwiftUI
 
 struct AccessibilitySettingsView: View {
     
-    @Environment(\.accessibilityVoiceOverEnabled) var voiceOverEnabled
+    @EnvironmentObject var accessibility: AccessibilityManager
     @Environment(\.horizontalSizeClass) private var sizeClass
-    
-    @AppStorage("accessibleMode") private var accessibleMode = false
-    @AppStorage("largeTextMode") private var largeTextMode = false
-    @AppStorage("highContrastMode") private var highContrastMode = false
-    @AppStorage("reduceMotionMode") private var reduceMotionMode = false
     
     var body: some View {
         
@@ -69,25 +64,25 @@ extension AccessibilitySettingsView {
             ToggleRow(
                 title: "Accessible Mode",
                 description: "Simplifies layout and increases spacing.",
-                isOn: $accessibleMode
+                isOn: $accessibility.accessibleMode
             )
             
             ToggleRow(
                 title: "Large Text",
                 description: "Increases font size across the app.",
-                isOn: $largeTextMode
+                isOn: $accessibility.largeTextMode
             )
             
             ToggleRow(
                 title: "High Contrast",
                 description: "Enhances foreground/background contrast.",
-                isOn: $highContrastMode
+                isOn: $accessibility.highContrastMode
             )
             
             ToggleRow(
                 title: "Reduce Motion",
                 description: "Minimizes animations and transitions.",
-                isOn: $reduceMotionMode
+                isOn: $accessibility.reduceMotionMode
             )
         }
     }
@@ -99,33 +94,23 @@ extension AccessibilitySettingsView {
             
             HStack(spacing: 15) {
                 
-                Image(systemName: voiceOverEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                Image(systemName: accessibility.reduceMotionMode ? "speaker.wave.2.fill" : "speaker.slash.fill")
                     .font(.title2)
-                    .foregroundColor(voiceOverEnabled ? .green : .secondary)
+                    .foregroundColor(.secondary)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     
                     Text("VoiceOver")
                         .font(.headline)
                     
-                    Text(
-                        voiceOverEnabled
-                        ? "VoiceOver is currently enabled."
-                        : "VoiceOver is managed in system settings."
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    Text("VoiceOver is managed in system settings.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
             }
             .padding()
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(
-                voiceOverEnabled
-                ? "VoiceOver is enabled."
-                : "VoiceOver is disabled. Controlled by system settings."
-            )
         }
     }
 }
@@ -142,8 +127,8 @@ extension AccessibilitySettingsView {
     private var backgroundView: some View {
         LinearGradient(
             colors: [
-                highContrastMode ? .black : Color.backgroundSand,
-                highContrastMode ? .black : Color.white.opacity(0.95)
+                accessibility.highContrastMode ? .black : Color.backgroundSand,
+                accessibility.highContrastMode ? .black : Color.white.opacity(0.95)
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -152,7 +137,7 @@ extension AccessibilitySettingsView {
     }
 }
 
-// MARK: - ToggleRow Component
+// MARK: - ToggleRow
 
 struct ToggleRow: View {
     
@@ -182,8 +167,5 @@ struct ToggleRow: View {
         .padding()
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title). \(description)")
-        .accessibilityValue(isOn ? "Enabled" : "Disabled")
     }
 }

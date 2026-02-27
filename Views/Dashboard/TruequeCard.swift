@@ -30,6 +30,7 @@ struct TruequeCard: View {
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
+
                     Text(trueque.title)
                         .font(.headline)
 
@@ -56,6 +57,34 @@ struct TruequeCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .shadow(color: .black.opacity(0.05), radius: 8)
         .animation(.easeInOut(duration: 0.25), value: trueque.status)
+
+        // MARK: Accessibility grouping
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityHint(accessibilityHintText)
+    }
+
+    private var accessibilityLabelText: String {
+        "\(trueque.title). \(trueque.description). Value \(trueque.tokens) tokens."
+    }
+
+    private var accessibilityHintText: String {
+        if trueque.owner == currentUser {
+            return "This is your trueque."
+        }
+
+        switch trueque.status {
+        case .active:
+            return canAfford
+            ? "Swipe up for actions. You can accept, counter, or reject."
+            : "Insufficient balance to accept."
+        case .countered:
+            return "This offer was countered. You can accept or reject."
+        case .accepted:
+            return "This trueque has been accepted."
+        case .rejected:
+            return "This trueque has been rejected."
+        }
     }
 
     private var backgroundColor: Color {
@@ -89,29 +118,14 @@ struct TruequeCard: View {
             case .active:
                 HStack(spacing: 10) {
 
-                    glassButton(
-                        title: "Accept",
-                        color: .green,
-                        disabled: !canAfford
-                    ) {
-                        onAccept()
-                    }
+                    actionButton(title: "Accept", color: .green, disabled: !canAfford, action: onAccept)
+                        .accessibilityHint("Accept this trueque.")
 
-                    glassButton(
-                        title: "Counter",
-                        color: .orange,
-                        disabled: false
-                    ) {
-                        onCounter()
-                    }
+                    actionButton(title: "Counter", color: .orange, disabled: false, action: onCounter)
+                        .accessibilityHint("Propose a different token value.")
 
-                    glassButton(
-                        title: "Reject",
-                        color: .red,
-                        disabled: false
-                    ) {
-                        onReject()
-                    }
+                    actionButton(title: "Reject", color: .red, disabled: false, action: onReject)
+                        .accessibilityHint("Reject this trueque.")
                 }
 
             case .countered:
@@ -121,21 +135,8 @@ struct TruequeCard: View {
 
                     Spacer()
 
-                    glassButton(
-                        title: "Accept",
-                        color: .green,
-                        disabled: !canAfford
-                    ) {
-                        onAccept()
-                    }
-
-                    glassButton(
-                        title: "Reject",
-                        color: .red,
-                        disabled: false
-                    ) {
-                        onReject()
-                    }
+                    actionButton(title: "Accept", color: .green, disabled: !canAfford, action: onAccept)
+                    actionButton(title: "Reject", color: .red, disabled: false, action: onReject)
                 }
 
             case .accepted, .rejected:
@@ -144,7 +145,7 @@ struct TruequeCard: View {
         }
     }
 
-    private func glassButton(
+    private func actionButton(
         title: String,
         color: Color,
         disabled: Bool,
@@ -156,9 +157,7 @@ struct TruequeCard: View {
                 .font(.system(size: 13, weight: .medium))
                 .padding(.vertical, 8)
                 .padding(.horizontal, 14)
-                .background(
-                    .ultraThinMaterial
-                )
+                .background(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(color.opacity(0.6), lineWidth: 1)
@@ -168,6 +167,7 @@ struct TruequeCard: View {
                 .opacity(disabled ? 0.4 : 1)
         }
         .disabled(disabled)
+        .accessibilityAddTraits(.isButton)
     }
 
     private var statusBadge: some View {
@@ -192,5 +192,6 @@ struct TruequeCard: View {
             }
         }
         .font(.caption)
+        .accessibilityAddTraits(.isStaticText)
     }
 }
