@@ -22,7 +22,6 @@ struct SelectionView: View {
     @State private var showCommunities = false
     @State private var showUsers = false
 
-    // Evita llamar onReady múltiples veces
     @State private var didAutoAdvance = false
 
     var body: some View {
@@ -49,10 +48,8 @@ struct SelectionView: View {
         ))
         .dynamicTypeSize(.xSmall ... .accessibility5)
         .onAppear {
-            // Si regresas a Selection, permite auto-advance otra vez si vuelven a elegir.
             didAutoAdvance = false
         }
-        // ✅ NO usa onChange (Community/User no son Equatable)
         .onReceive(store.$selectedCommunity) { _ in
             checkIfReady()
         }

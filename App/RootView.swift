@@ -13,8 +13,6 @@ struct RootView: View {
     @StateObject private var store = TruequeStore()
     @StateObject private var accessibility = AccessibilityManager()
 
-    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
-
     private enum Step {
         case onboarding
         case simulation
@@ -54,9 +52,6 @@ struct RootView: View {
             }
         }
         .environmentObject(accessibility)
-        .onAppear {
-            bootstrapInitialStep()
-        }
     }
 }
 
@@ -64,18 +59,8 @@ struct RootView: View {
 
 extension RootView {
 
-    private func bootstrapInitialStep() {
-        // Evita “flash” raro: solo define el arranque según AppStorage.
-        if hasSeenOnboarding {
-            step = .simulation
-        } else {
-            step = .onboarding
-        }
-    }
-
     private func goToSimulation() {
         updateWithOptionalAnimation {
-            hasSeenOnboarding = true
             step = .simulation
         }
     }
@@ -87,7 +72,9 @@ extension RootView {
     }
 
     private func goToMainIfReady() {
-        guard store.selectedCommunity != nil, store.selectedUser != nil else { return }
+        guard store.selectedCommunity != nil,
+              store.selectedUser != nil else { return }
+
         updateWithOptionalAnimation {
             step = .main
         }
@@ -95,15 +82,12 @@ extension RootView {
 
     private func goBackFromSelection() {
         updateWithOptionalAnimation {
-            // Back 1 pantalla: Selection -> Simulation
             step = .simulation
         }
     }
 
     private func exitToSelection() {
         updateWithOptionalAnimation {
-            // Back 1 pantalla: Main -> Selection
-            // (si quieres conservar ledger/estado, NO llames reset aquí)
             store.reset()
             step = .selection
         }

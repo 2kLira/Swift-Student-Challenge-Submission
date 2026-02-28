@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import MapKit
 
 struct CommunityNetworkView: View {
 
@@ -17,16 +18,19 @@ struct CommunityNetworkView: View {
     @State private var animatePulse = false
     @State private var lastLedgerCount = 0
 
+    // Región corregida (360 NO es válido)
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 15, longitude: 0),
+        span: MKCoordinateSpan(latitudeDelta: 120, longitudeDelta: 180)
+    )
+
+    @State private var rotationTimer: Timer?
+
     var body: some View {
 
         ZStack {
 
-            LinearGradient(
-                colors: [Color.backgroundSand.opacity(0.9), Color.white],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            worldMapBackground
 
             if sizeClass == .regular {
                 ipadLayout
@@ -34,8 +38,56 @@ struct CommunityNetworkView: View {
                 iphoneLayout
             }
         }
+        .onAppear {
+            startContinuousRotation()
+        }
+        .onDisappear {
+            rotationTimer?.invalidate()
+        }
     }
 }
+
+// World Map Background
+
+extension CommunityNetworkView {
+
+    private var worldMapBackground: some View {
+
+        Map(coordinateRegion: $region, interactionModes: [])
+            .ignoresSafeArea()
+            .overlay(
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.45),
+                        Color.black.opacity(0.25)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+    }
+
+    // Rotation
+    private func startContinuousRotation() {
+
+        guard !accessibility.reduceMotionMode else { return }
+
+        rotationTimer?.invalidate()
+
+        rotationTimer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { _ in
+
+            DispatchQueue.main.async {
+                region.center.longitude += 0.04
+
+                if region.center.longitude > 180 {
+                    region.center.longitude = -180
+                }
+            }
+        }
+    }
+}
+
+// Layouts
 
 extension CommunityNetworkView {
 
@@ -131,13 +183,13 @@ extension CommunityNetworkView {
             HStack {
                 Text("Community Network")
                     .font(.system(size: sizeClass == .regular ? 20 : 16, weight: .medium))
-                    .foregroundColor(.oceanBase.opacity(0.85))
+                    .foregroundColor(.white.opacity(0.9))
 
                 Spacer()
 
                 Text("\(Int(store.communityTrust * 100))% Trust")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.oceanAccent)
+                    .foregroundColor(.cyan)
             }
 
             HStack(spacing: 16) {
@@ -156,11 +208,11 @@ extension CommunityNetworkView {
 
             Text(value)
                 .font(.system(size: sizeClass == .regular ? 18 : 15, weight: .semibold))
-                .foregroundColor(.oceanBase)
+                .foregroundColor(.white)
 
             Text(title)
                 .font(.caption2)
-                .foregroundColor(.oceanBase.opacity(0.55))
+                .foregroundColor(.white.opacity(0.6))
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
@@ -179,9 +231,10 @@ extension CommunityNetworkView {
     private func organicCirclePositions(users: [User], in size: CGSize) -> [UUID: CGPoint] {
 
         let n = max(users.count, 1)
-        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.52)
+        let center = CGPoint(x: size.width * 0.5, y: size.height * 0.55)
 
-        let multiplier: CGFloat = sizeClass == .regular ? 0.40 : 0.34
+        // Ajuste leve para mapa
+        let multiplier: CGFloat = sizeClass == .regular ? 0.32 : 0.26
         let baseRadius = min(size.width, size.height) * multiplier
 
         let angleStep = (2 * Double.pi) / Double(n)
@@ -259,7 +312,7 @@ private struct NetworkEdge: View {
             p.addLine(to: to)
         }
         .stroke(
-            Color.oceanAccent.opacity(edgeOpacity),
+            Color.red.opacity(edgeOpacity),
             style: StrokeStyle(
                 lineWidth: edgeWidth,
                 lineCap: .round,
@@ -267,8 +320,8 @@ private struct NetworkEdge: View {
             )
         )
         .shadow(
-            color: Color.oceanAccent.opacity(pulse ? 0.18 : 0.06),
-            radius: pulse ? 10 : 6
+            color: Color.red.opacity(pulse ? 0.30 : 0.12),
+            radius: pulse ? 14 : 6
         )
         .animation(
             reduceMotion ? nil :
@@ -278,12 +331,13 @@ private struct NetworkEdge: View {
     }
 
     private var edgeWidth: CGFloat {
-        let w = 1.2 + CGFloat(min(tokens, 12)) * 0.25
-        return min(w, 5.0)
+        let base: CGFloat = 2.5
+        let variable = CGFloat(min(tokens, 12)) * 0.4
+        return min(base + variable, 8.0)
     }
 
     private var edgeOpacity: Double {
-        0.18 + trust * 0.37
+        0.45 + trust * 0.4
     }
 }
 
@@ -300,11 +354,11 @@ private struct NetworkNode: View {
 
             Text(name)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.oceanBase)
+                .foregroundColor(.white)
 
             Text("\(balance) TT")
                 .font(.caption2)
-                .foregroundColor(.oceanBase.opacity(0.6))
+                .foregroundColor(.white.opacity(0.7))
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 14)
@@ -314,7 +368,7 @@ private struct NetworkNode: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.glassBorder, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.05), radius: 8)
+        .shadow(color: .black.opacity(0.15), radius: 8)
         .scaleEffect(nodeScale)
         .animation(
             reduceMotion ? nil :
